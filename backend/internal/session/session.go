@@ -16,13 +16,6 @@ type Session struct {
 	Colony     *models.Colony `json:"colony,omitempty"`
 }
 
-type Message struct {
-	Type      string      `json:"type"`
-	SessionID string      `json:"session_id,omitempty"`
-	Data      interface{} `json:"data,omitempty"`
-	Timestamp time.Time   `json:"timestamp"`
-}
-
 func NewSession(conn *websocket.Conn) *Session {
 	sessionID := uuid.New().String()
 	now := time.Now()
@@ -117,7 +110,6 @@ func createInitialColony(sessionID string) *models.Colony {
 			Toxins: 0,
 			Research: 5,
 		},
-		Statistics: models.Statistics{},
 		ActiveDirectives: []models.Directive{},
 		AutoSave: true,
 	}
@@ -127,7 +119,7 @@ func (s *Session) UpdateActivity() {
 	s.LastActive = time.Now()
 }
 
-func (s *Session) SendMessage(msg Message) error {
+func (s *Session) SendMessage(msg models.GameMessage) error {
 	msg.Timestamp = time.Now()
 
 	return s.Conn.WriteJSON(msg)
