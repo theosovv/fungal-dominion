@@ -18,8 +18,6 @@ export function MainMenu() {
       <SubTitle>Grow. Adapt. Dominate.</SubTitle>
       <MenuButtons>
         <MenuButton onClick={() => navigate('/game')}>Play</MenuButton>
-        <MenuButton onClick={() => navigate('/new-colony')}>New Colony</MenuButton>
-        <MenuButton onClick={() => navigate('/settings')}>Settings</MenuButton>
       </MenuButtons>
       <Footer>Version 0.1.0</Footer>
     </MenuContainer>

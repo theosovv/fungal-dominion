@@ -17,7 +17,7 @@ export interface SessionData {
 
 const GameContext = createContext<GameContextValue | null>(null);
 
-export function useGame() {
+export function useGame(): GameContextValue | null {
   return useContext(GameContext);
 }
 
@@ -43,6 +43,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     ws.connect()
       .then(() => {
         setSocket(ws);
+        setIsConnected(true);
       })
       .catch((error) => {
         console.error('Failed to connect:', error);
