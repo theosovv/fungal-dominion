@@ -71,8 +71,8 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	sess := sessionManager.CreateSession(conn)
 	defer sessionManager.RemoveSession(sess.ID)
 
-	welcomeMsg := session.Message {
-		Type: "session_created",
+	welcomeMsg := models.GameMessage {
+		Type: models.SessionCreated,
 		SessionID: sess.ID,
 		Data: map[string]interface{}{
 			"session_id": sess.ID,
@@ -86,7 +86,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for {
-		var msg session.Message
+		var msg models.GameMessage
 		err := conn.ReadJSON(&msg)
 
 		if err != nil {
@@ -101,11 +101,11 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleMessage(sess *session.Session, msg session.Message) {
+func handleMessage(sess *session.Session, msg models.GameMessage) {
 	switch msg.Type {
 	case "ping":
-		response := session.Message {
-			Type: "pong",
+		response := models.GameMessage {
+			Type: models.Pong,
 			SessionID: sess.ID,
 			Data: map[string]interface{}{"timestamp": msg.Timestamp},
 		}
@@ -113,8 +113,8 @@ func handleMessage(sess *session.Session, msg session.Message) {
 		sess.SendMessage(response)
 
 	case "get_colony":
-		response := session.Message {
-			Type: "colony_state",
+		response := models.GameMessage {
+			Type: models.ColonyState,
 			SessionID: sess.ID,
 			Data: sess.Colony,
 		}
@@ -177,8 +177,8 @@ func handleCellClick(sess *session.Session, data map[string]interface{}) {
 			log.Printf("Created nutrient at (%d, %d)", x, y)
 		}
 
-		response := session.Message {
-			Type: "colony_state",
+		response := models.GameMessage {
+			Type: models.ColonyState,
 			SessionID: sess.ID,
 			Data: sess.Colony,
 		}

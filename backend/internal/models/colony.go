@@ -13,7 +13,6 @@ type Colony struct {
 	LastUpdate  time.Time   `json:"last_update"`
 	TickCount   int64       `json:"tick_count"`
 	Resources   Resources   `json:"resources"`
-	Statistics  Statistics  `json:"statistics"`
 	ActiveDirectives []Directive `json:"active_directives"`
 	AutoSave       bool     `json:"auto_save"`
 }

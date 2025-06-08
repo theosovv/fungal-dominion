@@ -1,79 +1,5 @@
-export interface GameMessage {
-  type: string;
-  session_id?: string;
-  data?: any;
-  timestamp: string;
-}
-
-export interface SessionData {
-  session_id: string;
-  colony: Colony;
-}
-
-export interface Colony {
-  id: string;
-  owner_id: string;
-  name: string;
-  width: number;
-  height: number;
-  cells: Cell[][];
-  created_at: string;
-  last_update: string;
-  tick_count: number;
-  resources: Resources;
-  active_directives: Directive[];
-  auto_save: boolean;
-}
-
-export interface Cell {
-  type: CellType;
-  state: CellState;
-  position: Position;
-  owner_id: string;
-  last_update: string;
-}
-
-export interface CellState {
-  health: number;
-  nutrition: number;
-  toxicity: number;
-  age: number;
-  energy: number;
-  growth: number;
-}
-
-export interface Position {
-  x: number;
-  y: number;
-}
-
-export interface Resources {
-  nutritients: number;
-  energy: number;
-  biomass: number;
-  spores: number;
-  toxins: number;
-  research: number;
-}
-
-export interface Directive {
-  id: string;
-  type: string;
-  priority: number;
-  parameters: Record<string, unknown>;
-  created_at: string;
-  expires_at?: string;
-  is_active: boolean;
-}
-
-export enum CellType {
-  Empty = 0,
-  Nutrient = 1,
-  Spore = 3,
-  Mycelium = 4,
-  FruitingBody = 5,
-  Toxin = 6,
-}
+import { Directive } from '@src/types/directive';
+import { GameMessage, MessageType } from '@src/types/message';
 
 export class GameWebSocket {
   private ws: WebSocket | null = null;
@@ -82,7 +8,7 @@ export class GameWebSocket {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
-  private messageHandlers: Map<string, (data: unknown) => void> = new Map();
+  private messageHandlers: Map<MessageType, <T>(data: T) => void> = new Map();
   private connectionStateHandlers: Set<(connected: boolean) => void> = new Set();
 
   constructor(url: string) {
@@ -95,17 +21,14 @@ export class GameWebSocket {
         this.ws = new WebSocket(this.url);
 
         this.ws.onopen = () => {
-          console.log('WebSocket connected');
-
           this.reconnectAttempts = 0;
-          this.notifyConnectionState(true);
 
           resolve();
         };
 
         this.ws.onmessage = (event) => {
           try {
-            const message: GameMessage = JSON.parse(event.data);
+            const message: GameMessage<Record<string, unknown>> = JSON.parse(event.data);
             this.handleMessage(message);
           } catch (error) {
             console.error('Failed to parse message:', error);
@@ -113,9 +36,6 @@ export class GameWebSocket {
         };
 
         this.ws.onclose = (event) => {
-          console.log('WebSocket disconnected');
-          this.notifyConnectionState(false);
-
           if (!event.wasClean && this.reconnectAttempts < this.maxReconnectAttempts) {
             this.scheduleReconnect();
           }
@@ -131,21 +51,19 @@ export class GameWebSocket {
     });
   }
 
-  private handleMessage(message: GameMessage) {
-    console.log('Received message:', message);
-
+  private handleMessage(message: GameMessage<Record<string, unknown>>) {
     switch (message.type) {
-      case 'session_created':
-        this.sessionId = message.data.session_id;
-        this.triggerHandler('session_created', message.data);
+      case MessageType.SessionCreated:
+        this.sessionId = message.session_id!;
+        this.triggerHandler(MessageType.SessionCreated, message.data);
         break;
 
-      case 'colony_state':
-        this.triggerHandler('colony_state', message.data);
+      case MessageType.ColonyState:
+        this.triggerHandler(MessageType.ColonyState, message.data);
         break;
 
-      case 'pong':
-        this.triggerHandler('pong', message.data);
+      case MessageType.Pong:
+        this.triggerHandler(MessageType.Pong, message.data);
         break;
 
       default:
@@ -153,7 +71,7 @@ export class GameWebSocket {
     }
   }
 
-  private triggerHandler(type: string, data: any) {
+  private triggerHandler(type: MessageType, data: Record<string, unknown>) {
     const handler = this.messageHandlers.get(type);
     if (handler) {
       handler(data);
@@ -162,9 +80,6 @@ export class GameWebSocket {
 
   private scheduleReconnect() {
     this.reconnectAttempts++;
-    console.log(
-      `Scheduling reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`,
-    );
 
     setTimeout(() => {
       this.connect().catch(() => {
@@ -173,12 +88,8 @@ export class GameWebSocket {
     }, this.reconnectDelay * this.reconnectAttempts);
   }
 
-  private notifyConnectionState(connected: boolean) {
-    this.connectionStateHandlers.forEach((handler) => handler(connected));
-  }
-
-  onMessage(type: string, handler: (data: any) => void) {
-    this.messageHandlers.set(type, handler);
+  onMessage<T>(type: MessageType, handler: (data: T) => void) {
+    this.messageHandlers.set(type, handler as <T>(data: T) => void);
   }
 
   onConnectionChange(handler: (connected: boolean) => void) {
@@ -186,9 +97,9 @@ export class GameWebSocket {
     return () => this.connectionStateHandlers.delete(handler);
   }
 
-  sendMessage(type: string, data?: any) {
+  sendMessage<T>(type: MessageType, data: T = {} as T) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      const message: GameMessage = {
+      const message: GameMessage<T> = {
         type,
         session_id: this.sessionId || undefined,
         data,
@@ -202,15 +113,15 @@ export class GameWebSocket {
   }
 
   ping() {
-    this.sendMessage('ping');
+    this.sendMessage(MessageType.Pong);
   }
 
   getColony() {
-    this.sendMessage('get_colony');
+    this.sendMessage(MessageType.GetColony);
   }
 
-  sendDirective(directive: any) {
-    this.sendMessage('directive', directive);
+  sendDirective(directive: Directive) {
+    this.sendMessage(MessageType.Directive, directive);
   }
 
   getSessionId(): string | null {

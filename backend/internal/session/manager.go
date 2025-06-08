@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/theosovv/fungal-dominion/internal/models"
 )
 
 type Manager struct {
@@ -62,7 +63,7 @@ func (m *Manager) RemoveSession(sessionID string) {
 	}
 }
 
-func (m *Manager) BroadcastToAll(msg Message) {
+func (m *Manager) BroadcastToAll(msg models.GameMessage) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 	
@@ -98,8 +99,8 @@ func (m *Manager) runSimulation() {
 		for _, session := range sessions {
 			session.UpdateColony()
 
-			msg := Message {
-				Type: "colony_updated",
+			msg := models.GameMessage {
+				Type: models.ColonyUpdated,
 				SessionID: session.ID,
 				Data: session.Colony,
 			}
